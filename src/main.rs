@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::app::{App, CurrentScreen};
+use crate::app::{App, CurrentBlock, CurrentScreen};
 
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{backend::Backend, Terminal};
@@ -47,6 +47,18 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     }
                     KeyCode::Char('q') => {
                         app.current_screen = CurrentScreen::Exit;
+                    }
+                    KeyCode::Char('h') => {
+                        app.current_block = CurrentBlock::Directories;
+                    }
+                    KeyCode::Char('j') => {
+                        app.next();
+                    }
+                    KeyCode::Char('k') => {
+                        app.previous();
+                    }
+                    KeyCode::Char('l') => {
+                        app.current_block = CurrentBlock::Files;
                     }
                     _ => {}
                 },

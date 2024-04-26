@@ -1,8 +1,11 @@
 mod file;
 mod tag;
 
-use std::fs::{self, DirEntry};
 use std::path::PathBuf;
+use std::{
+    fs::{self, DirEntry},
+    usize,
+};
 
 pub struct Collection {
     pub directories: Vec<PathBuf>,
@@ -19,6 +22,14 @@ impl Collection {
         Collection {
             directories: vec![],
         }
+    }
+
+    pub fn dir_count(&self) -> usize {
+        self.directories.len()
+    }
+
+    pub fn file_count(&self) -> usize {
+        self.files().len()
     }
 
     pub fn files(&self) -> Vec<DirEntry> {

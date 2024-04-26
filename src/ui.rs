@@ -1,10 +1,10 @@
-use crate::app::{App, CurrentScreen};
+use crate::app::{App, CurrentBlock, CurrentScreen};
 
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Style, Stylize},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, List, Paragraph, Wrap},
     Frame,
 };
 
@@ -12,6 +12,7 @@ macro_rules! basic_block {
     () => {
         Block::bordered()
             .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
             .style(Style::default())
     };
 }
@@ -31,8 +32,31 @@ pub fn ui(frame: &mut Frame, app: &App) {
     frame.render_widget(title, chunks[0]);
 
     // Main View
-    let list_display =
-        Layout::horizontal([Constraint::Percentage(70), Constraint::Fill(1)]).split(chunks[1]);
+    let list_display = Layout::horizontal([
+        Constraint::Percentage(30),
+        Constraint::Percentage(50),
+        Constraint::Fill(1),
+    ])
+    .split(chunks[1]);
+
+    let mut dir_list = Vec::<String>::new();
+    for dir in app.dir_list() {
+        let path = dir.to_str();
+
+        if let Some(path) = path {
+            dir_list.push(String::from(path));
+        }
+    }
+
+    let dir_block = if let CurrentBlock::Directories = app.current_block {
+        basic_block!().border_style(Style::new().green())
+    } else {
+        basic_block!()
+    };
+
+    let dir_list = List::new(dir_list).highlight_symbol(">").block(dir_block);
+
+    frame.render_stateful_widget(dir_list, list_display[0], &mut app.selected_dir.clone());
 
     let mut file_list = Vec::<String>::new();
     for file in app.file_list() {
@@ -44,21 +68,14 @@ pub fn ui(frame: &mut Frame, app: &App) {
         }
     }
 
-    let file_list = List::new(file_list).block(basic_block!());
-    frame.render_widget(file_list, list_display[0]);
+    let file_block = if let CurrentBlock::Files = app.current_block {
+        basic_block!().border_style(Style::new().green())
+    } else {
+        basic_block!()
+    };
+    let file_list = List::new(file_list).highlight_symbol(">").block(file_block);
 
-    let mut dir_list = Vec::<String>::new();
-    for dir in app.dir_list() {
-        let path = dir.to_str();
-
-        if let Some(path) = path {
-            dir_list.push(String::from(path));
-        }
-    }
-
-    let dir_list = List::new(dir_list).block(basic_block!());
-    frame.render_widget(dir_list, list_display[1]);
-
+    frame.render_stateful_widget(file_list, list_display[1], &mut app.selected_file.clone());
     // Bottom Nav Row
     let current_nav_text = vec![match app.current_screen {
         CurrentScreen::Main => Span::styled("Files", Style::default().fg(Color::Green)),
@@ -67,12 +84,17 @@ pub fn ui(frame: &mut Frame, app: &App) {
     }
     .to_owned()];
 
+    let file_details = Paragraph::new("File Details").block(basic_block!());
+    frame.render_widget(file_details, list_display[2]);
+
+    // Footer
+
     let mode_footer = Paragraph::new(Line::from(current_nav_text)).block(basic_block!());
 
     let current_keys_hint = {
         match app.current_screen {
             CurrentScreen::Main => Span::styled(
-                "(q) to quit / (a) to add directory to collection",
+                "(q) to quit / (a) to add directory / ← h,↓ j,↑ k,→ l",
                 Style::default().fg(Color::Red),
             ),
             CurrentScreen::Add => Span::styled(
